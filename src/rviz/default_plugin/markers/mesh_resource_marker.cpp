@@ -87,8 +87,6 @@ void MeshResourceMarker::onNewMessage(const MarkerConstPtr& old_message, const M
 {
   ROS_ASSERT(new_message->type == visualization_msgs::Marker::MESH_RESOURCE);
 
-  bool need_color = false;
-
   scene_node_->setVisible(false);
 
   if( !entity_ ||
@@ -120,7 +118,6 @@ void MeshResourceMarker::onNewMessage(const MarkerConstPtr& old_message, const M
     std::string id = ss.str();
     entity_ = context_->getSceneManager()->createEntity(id, new_message->mesh_resource);
     scene_node_->attachObject(entity_);
-    need_color = true;
 
     // create a default material for any sub-entities which don't have their own.
     ss << "Material";
@@ -172,27 +169,18 @@ void MeshResourceMarker::onNewMessage(const MarkerConstPtr& old_message, const M
     handler_->addTrackedObject( entity_ );
   }
 
-  if( need_color ||
-      old_message->color.r != new_message->color.r ||
-      old_message->color.g != new_message->color.g ||
-      old_message->color.b != new_message->color.b ||
-      old_message->color.a != new_message->color.a )
+  if (new_message->mesh_use_embedded_materials == false
+      && (!old_message
+          || old_message->mesh_use_embedded_materials == true
+          || old_message->color.r != new_message->color.r
+          || old_message->color.g != new_message->color.g
+          || old_message->color.b != new_message->color.b
+          || old_message->color.a != new_message->color.a))
   {
     float r = new_message->color.r;
     float g = new_message->color.g;
     float b = new_message->color.b;
     float a = new_message->color.a;
-
-    // Old way was to ignore the color and alpha when using embedded
-    // materials, which meant you could leave them unset, which means
-    // 0.  Since we now USE the color and alpha values, leaving them
-    // all 0 will mean the object will be invisible.  Therefore detect
-    // the situation where RGBA are all 0 and treat that the same as
-    // all 1 (full white).
-    if( new_message->mesh_use_embedded_materials && r == 0 && g == 0 && b == 0 && a == 0 )
-    {
-      r = 1; g = 1; b = 1; a = 1;
-    }
 
     Ogre::SceneBlendType blending;
     bool depth_write;
