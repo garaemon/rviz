@@ -106,40 +106,43 @@ void PointCloud2Display::processMessage( const sensor_msgs::PointCloud2ConstPtr&
   }
 
   filtered->data.resize(cloud->data.size());
-  if (point_count == 0)
-  {
-    return;
-  }
+  // if (point_count == 0)
+  // {
+  //   return;
+  // }
 
   uint8_t* output_ptr = &filtered->data.front();
   const uint8_t* ptr = &cloud->data.front(), *ptr_end = &cloud->data.back(), *ptr_init;
   size_t points_to_copy = 0;
-  for (; ptr < ptr_end; ptr += point_step)
+  if (point_count != 0)
   {
-    float x = *reinterpret_cast<const float*>(ptr + xoff);
-    float y = *reinterpret_cast<const float*>(ptr + yoff);
-    float z = *reinterpret_cast<const float*>(ptr + zoff);
-    if (validateFloats(x) && validateFloats(y) && validateFloats(z))
+    for (; ptr < ptr_end; ptr += point_step)
     {
-      if (points_to_copy == 0)
+      float x = *reinterpret_cast<const float*>(ptr + xoff);
+      float y = *reinterpret_cast<const float*>(ptr + yoff);
+      float z = *reinterpret_cast<const float*>(ptr + zoff);
+      if (validateFloats(x) && validateFloats(y) && validateFloats(z))
       {
-        // Only memorize where to start copying from
-        ptr_init = ptr;
-        points_to_copy = 1;
+        if (points_to_copy == 0)
+        {
+          // Only memorize where to start copying from
+          ptr_init = ptr;
+          points_to_copy = 1;
+        }
+        else
+        {
+          ++points_to_copy;
+        }
       }
       else
       {
-        ++points_to_copy;
-      }
-    }
-    else
-    {
-      if (points_to_copy)
-      {
-        // Copy all the points that need to be copied
-        memcpy(output_ptr, ptr_init, point_step*points_to_copy);
-        output_ptr += point_step*points_to_copy;
-        points_to_copy = 0;
+        if (points_to_copy)
+        {
+          // Copy all the points that need to be copied
+          memcpy(output_ptr, ptr_init, point_step*points_to_copy);
+          output_ptr += point_step*points_to_copy;
+          points_to_copy = 0;
+        }
       }
     }
   }
